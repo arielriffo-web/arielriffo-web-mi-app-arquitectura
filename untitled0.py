@@ -1,43 +1,56 @@
 import streamlit as st
 import google.generativeai as genai
 from PIL import Image
+import os
 
+# Configuración de página
 st.set_page_config(page_title="ArqAI Chile", layout="wide")
 st.title("🏗️ ArqAI: Consultor Arquitectónico")
 
+# 1. Configurar la API Key
 with st.sidebar:
     st.header("Configuración")
     api_key = st.text_input("Introduce tu Gemini API Key:", type="password")
-    st.info("Consíguela en: aistudio.google.com")
+    st.info("Consíguela en: [Google AI Studio](https://aistudio.google.com/)")
 
 if api_key:
     try:
+        # Configuración forzada
         genai.configure(api_key=api_key)
         
-        # En Chile, esta es la versión que mejor responde sin dar 404:
-        model = genai.GenerativeModel(model_name="gemini-1.5-flash")
+        # Usamos el nombre base del modelo más estable
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
+        # 2. Interfaz de usuario
         archivo = st.file_uploader("Sube la foto de la zona", type=["jpg", "jpeg", "png"])
         comando = st.text_input("¿Qué quieres construir?", "Haz una cancha de tenis")
         
         if archivo and st.button("🚀 Generar Propuesta Técnica"):
             img = Image.open(archivo)
             
-            with st.spinner("Analizando terreno y materiales para Chile..."):
-                # Enviamos las partes de forma explícita
-                contenido = [
-                    "Eres un ingeniero civil y arquitecto experto en Chile. "
-                    f"Rediseña la zona de la imagen según: {comando}. "
-                    "Indica materiales realizables y estabilidad estructural.",
+            with st.spinner("El arquitecto IA está analizando la imagen..."):
+                # Formato de mensaje explícito para evitar errores de versión
+                prompt_parts = [
+                    f"Actúa como arquitecto experto. Rediseña según: {comando}. "
+                    "Detalla estructura, estabilidad y materiales necesarios.",
                     img
                 ]
                 
-                response = model.generate_content(contenido)
-                st.subheader("📋 Propuesta Técnica")
-                st.markdown(response.text)
+                # Ejecución de la consulta
+                response = model.generate_content(prompt_parts)
                 
+                if response.text:
+                    st.subheader("📋 Propuesta Técnica")
+                    st.success("Análisis completado con éxito")
+                    st.markdown(response.text)
+                else:
+                    st.error("La IA no pudo generar una respuesta. Intenta con otra imagen.")
+                    
     except Exception as e:
-        # Esto nos dirá si el error es de la clave o del modelo
-        st.error(f"Aviso del sistema: {e}")
+        # Si el error 404 persiste, imprimimos un mensaje útil
+        if "404" in str(e):
+            st.error("Error 404: El modelo no fue encontrado. Por favor, genera una API KEY NUEVA en Google AI Studio dentro de un proyecto nuevo.")
+        else:
+            st.error(f"Error del sistema: {e}")
 else:
-    st.warning("Introduce tu API Key en la izquierda.")
+    st.warning("👈 Ingresa tu API Key para comenzar.")
