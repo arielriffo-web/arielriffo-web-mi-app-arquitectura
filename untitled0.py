@@ -6,49 +6,46 @@ from PIL import Image
 st.set_page_config(page_title="ArqAI Chile", layout="wide")
 st.title("🏗️ ArqAI: Consultor Arquitectónico")
 
-# 1. Configurar la API Key de forma directa (¡La tuya ya está guardada aquí!)
-API_KEY_POR_DEFECTO = "AIzaSyAjNQLOyAb5ToEAdxQulFc18jGjONbuSMM"
-
-# 2. Barra lateral simplificada (ya no necesitas escribir la clave)
+# 1. Configurar la API Key
 with st.sidebar:
     st.header("Configuración")
-    st.success("🔑 API Key cargada con éxito por el sistema.")
-    st.info("Desarrollado para el proyecto final de Informática.")
+    api_key = st.text_input("Introduce tu Gemini API Key:", type="password")
+    st.info("Consíguela en: [Google AI Studio](https://aistudio.google.com/)")
 
-# Activamos el cerebro de la aplicación usando tu clave
-try:
-    genai.configure(api_key=API_KEY_POR_DEFECTO)
-    
-    # Usamos la llamada al modelo estándar para la versión de librería moderna
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    
-    # 3. Interfaz de usuario para subir archivos y comandos
-    archivo = st.file_uploader("Sube la foto de la zona", type=["jpg", "jpeg", "png"])
-    comando = st.text_input("¿Qué quieres construir?", "Haz una cancha de tenis")
-    
-    if archivo and st.button("🚀 Generar Propuesta Técnica"):
-        img = Image.open(archivo)
+if api_key:
+    try:
+        # Configuración de la librería de Google
+        genai.configure(api_key=api_key)
         
-        with st.spinner("El arquitecto IA está analizando la imagen..."):
-            # Formato de mensaje explícito compatible con Gemini en Chile
-            prompt_parts = [
-                f"Actúa como arquitecto e ingeniero experto en Chile. Rediseña la zona de la imagen según esta instrucción: '{comando}'. "
-                "Detalla la estructura, la estabilidad y los materiales necesarios de manera muy realista.",
-                img
-            ]
+        # Usamos 'gemini-1.5-flash' garantizando la compatibilidad con la librería actualizada
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # 2. Interfaz de usuario
+        archivo = st.file_uploader("Sube la foto de la zona", type=["jpg", "jpeg", "png"])
+        comando = st.text_input("¿Qué quieres construir?", "Haz una cancha de tenis")
+        
+        if archivo and st.button("🚀 Generar Propuesta Técnica"):
+            img = Image.open(archivo)
             
-            response = model.generate_content(prompt_parts)
-            
-            if response.text:
-                st.subheader("📋 Propuesta Técnica")
-                st.success("Análisis completado con éxito")
-                st.markdown(response.text)
-            else:
-                st.error("La IA no pudo procesar la imagen. Intenta con un formato diferente.")
+            with st.spinner("El arquitecto IA está analizando la imagen..."):
+                # Formato de mensaje explícito para evitar fallas
+                prompt_parts = [
+                    f"Actúa como arquitecto e ingeniero civil experto en Chile. Rediseña según: {comando}. "
+                    "Detalla estructura, estabilidad y materiales de construcción realistas.",
+                    img
+                ]
                 
-except Exception as e:
-    # Captura cualquier error de versión o clave
-    if "404" in str(e):
-        st.error("Error de conexión (404). Por favor, asegúrate de que tu 'requirements.txt' esté actualizado y haz un 'Reboot App' en Streamlit.")
-    else:
+                # Ejecución de la consulta
+                response = model.generate_content(prompt_parts)
+                
+                if response.text:
+                    st.subheader("📋 Propuesta Técnica")
+                    st.success("Análisis completado con éxito")
+                    st.markdown(response.text)
+                else:
+                    st.error("La IA no pudo generar una respuesta. Intenta de nuevo.")
+                    
+    except Exception as e:
         st.error(f"Error del sistema: {e}")
+else:
+    st.warning("👈 Ingresa tu API Key para comenzar.")
